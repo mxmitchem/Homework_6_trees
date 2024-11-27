@@ -1,0 +1,155 @@
+---
+title: "Homework 6"
+author: "Mya Mitchem"
+---
+
+
+
+#load Library
+```{r}
+library(dplyr)
+library(tidyverse)
+library(lubridate)
+library(tidycensus)
+library(ggplot2)
+library(dplyr)
+```
+
+```{r}
+data = read.csv(here::here("C:\\Users\\myami\\Documents\\Plan372\\plan372-exercises\\RDS-2016-0005\\Data\\TS3_Raw_tree_data.csv"))
+```
+
+```{r}
+head(data)
+```
+```{r}
+unique(data$City)
+
+```
+
+
+
+#regular expression to separate city and state
+```{r}
+data = data |>
+  
+  mutate(city = str_extract(City, "^[^,]+"),    state = str_extract(City, "(?<=,\\s)[A-Z]{2}$")
+  )
+```
+
+```{r}
+print(data)
+```
+
+
+**getting number of records for each state **
+```{r}
+record_count = data |>
+  count(state)
+```
+
+```{r}
+print(record_count)
+```
+
+
+#Question 2: cities in NC/SC
+##filtering for NC and SC
+```{r}
+NC_SC_data = data |>
+filter(state == "NC" | state =="SC")
+```
+
+```{r}
+diff_cities = NC_SC_data |>
+  distinct(city)
+```
+
+```{r}
+print(diff_cities)
+```
+**there are 2 cities from NC and SC, Charleston and Charlotte**
+
+
+# writing a regular expression for finding the genus
+```{r}
+genus_data = NC_SC_data |>
+  mutate(genus = str_extract(ScientificName,  "^[A-Za-z]+"))
+```
+
+```{r}
+print(genus_data)
+```
+
+```{r}
+unique(data)
+```
+
+```{r}
+genus_crown = genus_data |>
+  group_by(genus) |>
+  summarize(avg_crown = mean(`AvgCdia..m.`,na.rm = TRUE))
+```
+
+```{r}
+print(genus_crown)
+```
+
+```{r}
+biggest_genus_crown = genus_crown |>
+  arrange(desc(avg_crown))
+```
+
+```{r}
+print(biggest_genus_crown)
+```
+**the genus of trees with the largest crown diameter in north and south Carolina is Quercus**
+
+###Extra Credit
+##average age of the genus 
+```{r}
+genus_age = genus_data |>
+  group_by(genus) |>
+  summarize(avg_age = mean(Age, na.rm = TRUE))
+```
+
+```{r}
+print(genus_age)
+```
+
+
+```{r}
+joined_data = genus_crown |>
+  left_join(genus_age, by = "genus")
+```
+
+```{r}
+print(joined_data)
+```
+#sort by average crown 
+
+```{r}
+genus_big = joined_data |>
+  arrange(desc(avg_crown))
+```
+
+```{r}
+print(genus_big)
+```
+
+*I would not say this explains the results to the previous question. There are several trees that are older with smaller crowns, and vice versa. for example, the Sabal tree is an average of 26 years old and a small crown of 3.97m. Meanwhile, the Malus tree has an average age of 12 years with a larger crown of 6.63m.*
+
+#finding the growth per year
+
+```{r}
+avg_growth = joined_data |>
+  group_by(genus)|>
+  mutate(growth_per_year = avg_crown/avg_age)|>
+  arrange(desc(growth_per_year))
+```
+
+```{r}
+print(avg_growth)
+```
+**A good genera that would likely produce a large crown quickly would be an Ulmus Tree. I chose this tree because each year it lives it will grow the biggest crown. I decided to group by genus, and then find the rate of growth which is the avg genus/avg years **
+
